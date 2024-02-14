@@ -65,6 +65,6 @@ typedef struct {
     TokenType type;
     char lexeme[BUFFER_SIZE];
     int line;
-} Token;
+} TokenInfo;
 
 #endif // TOKEN_H
