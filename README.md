@@ -14,9 +14,9 @@ This compiler project consists of several modules, each responsible for differen
 
 ## Contributors
 
-- @anannya-trivedi
-- @nidhishah09
-- @revantsai1234
-- @Saavi2436
-- @ShardulWadajkar
-- @SreeGanesh04
+- [@anannya-trivedi]
+- [@nidhishah09]
+- [@revantsai1234]
+- [@Saavi2436]
+- [@ShardulWadajkar]
+- [@SreeGanesh04]
