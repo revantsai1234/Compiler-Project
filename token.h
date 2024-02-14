@@ -1,5 +1,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H
+#define BUFFER_SIZE 1024
 
 typedef enum {
     TK_ASSIGNOP,
