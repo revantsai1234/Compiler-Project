@@ -423,4 +423,143 @@ TokenInfo getNextToken()
         CurrToken.lexeme = (char *)malloc(strlen(".") + 1);
         strcpy(CurrToken.lexeme, ".");
         CurrToken.line = lineno;
-        CurrToken.
+        CurrToken.type = TK_DOT;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == ":")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen(":") + 1);
+        strcpy(CurrToken.lexeme, ":");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_COLON;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == ";")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen(";") + 1);
+        strcpy(CurrToken.lexeme, ";");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_SEM;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == ",")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen(",") + 1);
+        strcpy(CurrToken.lexeme, ",");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_COMMA;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == "]")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen("]") + 1);
+        strcpy(CurrToken.lexeme, "]");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_SQR;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == "[")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen("[") + 1);
+        strcpy(CurrToken.lexeme, "[");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_SQL;
+        return CurrToken;
+    }
+
+    if (current_buffer[curr] == "%")
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen("%") + 1);
+        strcpy(CurrToken.lexeme, "%");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_COMMENT;
+        return CurrToken;
+    }
+
+    if (current_buffer[forw] == '=')
+    {
+        forw++;
+        checklimits();
+        if (current_buffer[forw] == '=')
+        {
+            forw++;
+            CurrToken.lexeme = (char *)malloc(strlen("==") + 1);
+            strcpy(CurrToken.lexeme, "==");
+            CurrToken.line = lineno;
+            CurrToken.type = TK_EQ;
+            return CurrToken;
+        }
+        else
+        {
+            CurrToken.lexeme = (char *)malloc(strlen("=") + 1);
+            strcpy(CurrToken.lexeme, "=");
+            CurrToken.line = lineno;
+            CurrToken.type = TK_ERROR;
+            return CurrToken;
+        }
+    }
+
+    if (current_buffer[forw] == '!')
+    {
+        forw++;
+        checklimits();
+        if (current_buffer[forw] == '=')
+        {
+            forw++;
+            CurrToken.lexeme = (char *)malloc(strlen("!=") + 1);
+            strcpy(CurrToken.lexeme, "!=");
+            CurrToken.line = lineno;
+            CurrToken.type = TK_NE;
+            return CurrToken;
+        }
+        else
+        {
+            CurrToken.lexeme = (char *)malloc(strlen("!") + 1);
+            strcpy(CurrToken.lexeme, "!");
+            CurrToken.line = lineno;
+            CurrToken.type = TK_ERROR;
+            return CurrToken;
+        }
+    }
+}
+
+void checklimits()
+{
+    if (forw > 1023)
+    {
+        fp = getStream(fp, 1024 - curr);
+    }
+}
+
+int main()
+{
+
+    TokenInfo printToken;
+    while (current_buffer[curr] != EOF)
+    {
+        printToken = getNextToken();
+        if (printToken.type == TK_ERROR)
+        {
+        }
+        else
+            printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+    }
+    return 0;
+}
