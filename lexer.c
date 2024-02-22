@@ -209,7 +209,7 @@ const char *getTokenTypeName(TokenType type)
 }
 
 char *current_buffer, *next_buffer;
-int curr, forw, lineno = 0;
+int curr, forw, lineno;
 FILE *fp;
 
 FILE *getStream(FILE *fp, int space_to_fill)
@@ -270,6 +270,27 @@ TokenInfo getNextToken()
     curr = forw;
     checklimits();
     TokenInfo CurrToken;
+    if (current_buffer[curr]==' ' || current_buffer[curr]=='\t')
+    {
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen(" ") + 1);
+        strcpy(CurrToken.lexeme, " ");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_DELIM;
+        return CurrToken;
+    }
+    if (current_buffer[curr]=='\n')
+    {
+        lineno++;
+        forw++;
+        checklimits();
+        CurrToken.lexeme = (char *)malloc(strlen(" ") + 1);
+        strcpy(CurrToken.lexeme, " ");
+        CurrToken.line = lineno;
+        CurrToken.type = TK_DELIM;
+        return CurrToken;
+    }
     if (current_buffer[curr] == '@')
     {
         forw++;
@@ -752,6 +773,37 @@ TokenInfo getNextToken()
             }
             else if ((current_buffer[forw] >= '2') && (current_buffer[forw] <= '7'))
             {
+                counter++;
+                forw++;
+                checklimits();
+                while ((current_buffer[forw] >= 'b') && (current_buffer[forw] <= 'd'))
+                {
+                    counter++;
+                    forw++;
+                    checklimits();
+                }
+                while ((current_buffer[forw] >= '2') && (current_buffer[forw] <= '7'))
+                {
+                    counter++;
+                    forw++;
+                    checklimits();
+                }
+                if (counter <= 20)
+                {
+                    CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                    strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                    CurrToken.line = lineno;
+                    CurrToken.type = TK_ID;
+                    return CurrToken;
+                }
+                else
+                {
+                    CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                    strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                    CurrToken.line = lineno;
+                    CurrToken.type = TK_ERROR;
+                    return CurrToken;
+                }
             }
             else
             {
@@ -764,6 +816,117 @@ TokenInfo getNextToken()
         }
         else
         {
+            counter++;
+            forw++;
+            checklimits();
+            while ((current_buffer[forw] >= 'a') && (current_buffer[forw] <= 'z'))
+            {
+                counter++;
+                forw++;
+                checklimits();
+            }
+            if (counter <= 20)
+            {
+                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                CurrToken.line = lineno;
+                CurrToken.type = TK_FIELDID;
+                return CurrToken;
+            }
+            else
+            {
+                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                CurrToken.line = lineno;
+                CurrToken.type = TK_ERROR;
+                return CurrToken;
+            }
+        }
+    }
+
+    if ((current_buffer[curr] >= '0') && (current_buffer[curr] <= '9')){
+        forw++;
+        checklimits();
+        while ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
+        {
+            forw++;
+            checklimits();
+        }
+        if(current_buffer[forw]=='.'){
+            forw++;
+            checklimits();
+            if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                forw++;
+                checklimits();
+                if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                    forw++;
+                    checklimits();
+                    if(current_buffer[forw]=='E'){
+                        forw++;
+                        checklimits();
+                        if(current_buffer[forw]=='+' || current_buffer[forw]=='-'){
+                            forw++;
+                            checklimits();
+                        }
+                        if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                            forw++;
+                            checklimits();
+                            if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                                strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                                CurrToken.line = lineno;
+                                CurrToken.type = TK_RNUM;
+                                return CurrToken;
+                            }
+                            else{
+                                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                                strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                                CurrToken.line = lineno;
+                                CurrToken.type = TK_ERROR;
+                                return CurrToken;
+                            }
+                        }
+                        else{
+                            CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                            strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                            CurrToken.line = lineno;
+                            CurrToken.type = TK_ERROR;
+                            return CurrToken;
+                        }
+
+                    }
+                    else{
+                        CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                        strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                        CurrToken.line = lineno;
+                        CurrToken.type = TK_RNUM;
+                        return CurrToken;
+                    }
+
+                }
+                else{
+                    CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                    strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                    CurrToken.line = lineno;
+                    CurrToken.type = TK_ERROR;
+                    return CurrToken;
+                }
+            }
+            else{
+                forw--;
+                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+                CurrToken.line = lineno;
+                CurrToken.type = TK_NUM;
+                return CurrToken;
+            }
+        }
+        else{
+            CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+            strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+            CurrToken.line = lineno;
+            CurrToken.type = TK_NUM;
+            return CurrToken;
         }
     }
 }
@@ -778,7 +941,7 @@ void checklimits()
 
 int main()
 {
-
+    lineno=0;
     TokenInfo printToken;
     while (current_buffer[curr] != EOF)
     {
