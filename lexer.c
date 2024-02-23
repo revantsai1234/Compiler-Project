@@ -64,7 +64,11 @@ typedef enum
     TK_GT,
     TK_GE,
     TK_NE,
-    TK_ERROR,
+    TK_ERROR_PATTERN,
+    TK_ERROR_SYMBOL,
+    TK_ERROR_ASSIGNOP,
+    TK_ERROR_SIZE20,
+    TK_ERROR_SIZE30,
     TK_DELIM
 } TokenType;
 
@@ -79,7 +83,7 @@ struct buffer
 {
     char buffer1[1024];
     char buffer2[1024];
-};
+} buffer;
 
 const char *getTokenTypeName(TokenType type)
 {
@@ -199,8 +203,16 @@ const char *getTokenTypeName(TokenType type)
         return "TK_GE";
     case TK_NE:
         return "TK_NE";
-    case TK_ERROR:
-        return "TK_ERROR";
+    case TK_ERROR_SYMBOL:
+        return "TK_ERROR_SYMBOL";
+    case TK_ERROR_PATTERN:
+        return "TK_ERROR_PATTERN";
+    case TK_ERROR_ASSIGNOP:
+        return "TK_ERROR_ASSIGNOP";
+    case TK_ERROR_SIZE20:
+        return "TK_ERROR_SIZE20";
+    case TK_ERROR_SIZE30:
+        return "TK_ERROR_SIZE30";
     case TK_DELIM:
         return "TK_DELIM";
     default:
@@ -208,9 +220,210 @@ const char *getTokenTypeName(TokenType type)
     }
 }
 
+// Linked List node
+struct node
+{
+
+    // key is string
+    char *key;
+    // value is also string
+    TokenType token;
+    struct node *next;
+};
+
+// like constructor
+void setNode(struct node *node, char *key, TokenType token)
+{
+    node->key = key;
+    node->token = token;
+    node->next = NULL;
+    return;
+};
+
+struct hashMap
+{
+
+    // Current number of elements in hashMap
+    // and capacity of hashMap
+    int numOfElements, capacity;
+
+    // hold base address array of linked list
+    struct node **arr;
+};
+
+void initializeHashMap(struct hashMap *mp)
+{
+
+    // Default capacity in this case
+    mp->capacity = 100;
+    mp->numOfElements = 0;
+
+    // array of size = 1
+    mp->arr = (struct node **)malloc(sizeof(struct node *) * mp->capacity);
+    return;
+}
+
+int hashFunction(struct hashMap *mp, char *key)
+{
+    int bucketIndex;
+    int sum = 0, factor = 31;
+    for (int i = 0; i < strlen(key); i++)
+    {
+
+        // sum = sum + (ascii value of
+        // char * (primeNumber ^ x))...
+        // where x = 1, 2, 3....n
+        sum = ((sum % mp->capacity) + (((int)key[i]) * factor) % mp->capacity) % mp->capacity;
+
+        // factor = factor * prime
+        // number....(prime
+        // number) ^ x
+        factor = ((factor % __INT16_MAX__) * (31 % __INT16_MAX__)) % __INT16_MAX__;
+    }
+
+    bucketIndex = sum;
+    return bucketIndex;
+}
+
+void insert(struct hashMap *mp, char *key, TokenType token)
+{
+
+    // Getting bucket index for the given
+    // key - value pair
+    int bucketIndex = hashFunction(mp, key);
+    struct node *newNode = (struct node *)malloc(
+
+        // Creating a new node
+        sizeof(struct node));
+
+    // Setting value of node
+    setNode(newNode, key, token);
+
+    // Bucket index is empty....no collision
+    if (mp->arr[bucketIndex] == NULL)
+    {
+        mp->arr[bucketIndex] = newNode;
+    }
+
+    // Collision
+    else
+    {
+
+        // Adding newNode at the head of
+        // linked list which is present
+        // at bucket index....insertion at
+        // head in linked list
+        newNode->next = mp->arr[bucketIndex];
+        mp->arr[bucketIndex] = newNode;
+    }
+    return;
+}
+
+void delete(struct hashMap *mp, char *key)
+{
+
+    // Getting bucket index for the
+    // given key
+    int bucketIndex = hashFunction(mp, key);
+
+    struct node *prevNode = NULL;
+
+    // Points to the head of
+    // linked list present at
+    // bucket index
+    struct node *currNode = mp->arr[bucketIndex];
+
+    while (currNode != NULL)
+    {
+
+        // Key is matched at delete this
+        // node from linked list
+        if (strcmp(key, currNode->key) == 0)
+        {
+
+            // Head node
+            // deletion
+            if (currNode == mp->arr[bucketIndex])
+            {
+                mp->arr[bucketIndex] = currNode->next;
+            }
+
+            // Last node or middle node
+            else
+            {
+                prevNode->next = currNode->next;
+            }
+            free(currNode);
+            break;
+        }
+        prevNode = currNode;
+        currNode = currNode->next;
+    }
+    return;
+}
+
+TokenType search(struct hashMap *mp, char *key)
+{
+
+    // Getting the bucket index
+    // for the given key
+    int bucketIndex = hashFunction(mp, key);
+    // Head of the linked list
+    // present at bucket index
+
+    struct node *bucketHead = mp->arr[bucketIndex];
+
+    while (bucketHead != NULL)
+    {
+        // Key is found in the hashMap
+        if (strcmp(bucketHead->key, key) == 0)
+        {
+            return bucketHead->token;
+        }
+        bucketHead = bucketHead->next;
+    }
+
+    // If no key found in the hashMap
+    // equal to the given key
+    char *errorMssg = (char *)malloc(sizeof(char) * 25);
+    return TK_ERROR_PATTERN;
+}
+
+void insertKeyWords(struct hashMap *mp)
+{
+    insert(mp, "with", TK_WITH);
+    insert(mp, "parameters", TK_PARAMETERS);
+    insert(mp, "end", TK_END);
+    insert(mp, "while", TK_WHILE);
+    insert(mp, "union", TK_UNION);
+    insert(mp, "endunion", TK_ENDUNION);
+    insert(mp, "definetype", TK_DEFINETYPE);
+    insert(mp, "as", TK_AS);
+    insert(mp, "type", TK_TYPE);
+    insert(mp, "global", TK_GLOBAL);
+    insert(mp, "parameter", TK_PARAMETER);
+    insert(mp, "list", TK_LIST);
+    insert(mp, "input", TK_INPUT);
+    insert(mp, "output", TK_OUTPUT);
+    insert(mp, "int", TK_INT);
+    insert(mp, "real", TK_REAL);
+    insert(mp, "endwhile", TK_ENDWHILE);
+    insert(mp, "if", TK_IF);
+    insert(mp, "then", TK_THEN);
+    insert(mp, "endif", TK_ENDIF);
+    insert(mp, "read", TK_READ);
+    insert(mp, "write", TK_WRITE);
+    insert(mp, "return", TK_RETURN);
+    insert(mp, "call", TK_CALL);
+    insert(mp, "record", TK_RECORD);
+    insert(mp, "endrecord", TK_ENDRECORD);
+    insert(mp, "else", TK_ELSE);
+}
+
 char *current_buffer, *next_buffer;
 int curr, forw, lineno;
 FILE *fp;
+struct hashMap *mp;
 
 FILE *getStream(FILE *fp, int space_to_fill)
 {
@@ -234,35 +447,13 @@ FILE *getStream(FILE *fp, int space_to_fill)
     return fp;
 }
 
-void removeComments(char *testcaseFile, char *cleanFile)
+void checklimits()
 {
-    FILE *inputFile = fopen(testcaseFile, "r");
-    FILE *outputFile = fopen(cleanFile, "w");
-
-    if (inputFile == NULL || outputFile == NULL)
+    if (forw > 1023)
     {
-        printf("Error opening files.\n");
-        return;
+        fp = getStream(fp, 1024 - curr);
     }
-
-    char *line = NULL;
-    size_t bufferSize = 0;
-    size_t charactersRead;
-
-    while ((charactersRead = getline(&line, &bufferSize, inputFile)) != -1)
-    {
-        char *commentPos = strchr(line, '%');
-        if (commentPos != NULL)
-        {
-            *commentPos = '\n';
-            *(commentPos + 1) = '\0';
-        }
-        fprintf(outputFile, "%s", line);
-    }
-
-    free(line);
-    fclose(inputFile);
-    fclose(outputFile);
+    return;
 }
 
 TokenInfo getNextToken()
@@ -270,7 +461,7 @@ TokenInfo getNextToken()
     curr = forw;
     checklimits();
     TokenInfo CurrToken;
-    if (current_buffer[curr]==' ' || current_buffer[curr]=='\t')
+    if (current_buffer[curr] == ' ' || current_buffer[curr] == '\t')
     {
         forw++;
         checklimits();
@@ -280,7 +471,7 @@ TokenInfo getNextToken()
         CurrToken.type = TK_DELIM;
         return CurrToken;
     }
-    if (current_buffer[curr]=='\n')
+    if (current_buffer[curr] == '\n')
     {
         lineno++;
         forw++;
@@ -313,7 +504,7 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(strlen("@@") + 1);
                 strcpy(CurrToken.lexeme, "@@");
                 CurrToken.line = lineno;
-                CurrToken.type = TK_ERROR;
+                CurrToken.type = TK_ERROR_PATTERN;
                 return CurrToken;
             }
         }
@@ -322,20 +513,20 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("@") + 1);
             strcpy(CurrToken.lexeme, "@");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
 
-    if (current_buffer[curr] == "&")
+    if (current_buffer[curr] == '&')
     {
         forw++;
         checklimits();
-        if (current_buffer[forw] == "&")
+        if (current_buffer[forw] == '&')
         {
             forw++;
             checklimits();
-            if (current_buffer[forw] == "&")
+            if (current_buffer[forw] == '&')
             {
                 forw++;
                 CurrToken.lexeme = (char *)malloc(strlen("&&&") + 1);
@@ -349,7 +540,7 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(strlen("&&") + 1);
                 strcpy(CurrToken.lexeme, "&&");
                 CurrToken.line = lineno;
-                CurrToken.type = TK_ERROR;
+                CurrToken.type = TK_ERROR_PATTERN;
                 return CurrToken;
             }
         }
@@ -358,12 +549,12 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("&") + 1);
             strcpy(CurrToken.lexeme, "&");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
 
-    if (current_buffer[curr] == "*")
+    if (current_buffer[curr] == '*')
     {
         forw++;
         CurrToken.lexeme = (char *)malloc(strlen("*") + 1);
@@ -373,7 +564,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[forw] == "/")
+    if (current_buffer[forw] == '/')
     {
         forw++;
         CurrToken.lexeme = (char *)malloc(strlen("/") + 1);
@@ -383,7 +574,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "~")
+    if (current_buffer[curr] == '~')
     {
         forw++;
         checklimits();
@@ -394,7 +585,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "-")
+    if (current_buffer[curr] == '-')
     {
         forw++;
         checklimits();
@@ -405,7 +596,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "+")
+    if (current_buffer[curr] == '+')
     {
         forw++;
         checklimits();
@@ -416,7 +607,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == ")")
+    if (current_buffer[curr] == ')')
     {
         forw++;
         checklimits();
@@ -427,7 +618,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "(")
+    if (current_buffer[curr] == '(')
     {
         forw++;
         checklimits();
@@ -438,7 +629,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == ".")
+    if (current_buffer[curr] == '.')
     {
         forw++;
         checklimits();
@@ -449,18 +640,20 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == ":")
+    if (current_buffer[curr] == ':')
     {
         forw++;
         checklimits();
         CurrToken.lexeme = (char *)malloc(strlen(":") + 1);
         strcpy(CurrToken.lexeme, ":");
         CurrToken.line = lineno;
+        printf("%c\n", current_buffer[5]);
+
         CurrToken.type = TK_COLON;
         return CurrToken;
     }
 
-    if (current_buffer[curr] == ";")
+    if (current_buffer[curr] == ';')
     {
         forw++;
         checklimits();
@@ -471,7 +664,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == ",")
+    if (current_buffer[curr] == ',')
     {
         forw++;
         checklimits();
@@ -482,7 +675,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "]")
+    if (current_buffer[curr] == ']')
     {
         forw++;
         checklimits();
@@ -493,7 +686,7 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[curr] == "[")
+    if (current_buffer[curr] == '[')
     {
         forw++;
         checklimits();
@@ -503,15 +696,21 @@ TokenInfo getNextToken()
         CurrToken.type = TK_SQL;
         return CurrToken;
     }
-
-    if (current_buffer[curr] == "%")
+    if (current_buffer[curr] == '%')
     {
         forw++;
         checklimits();
         CurrToken.lexeme = (char *)malloc(strlen("%") + 1);
         strcpy(CurrToken.lexeme, "%");
+
         CurrToken.line = lineno;
         CurrToken.type = TK_COMMENT;
+
+        while (current_buffer[forw] != '\n')
+        {
+            forw++;
+            checklimits();
+        }
         return CurrToken;
     }
 
@@ -533,7 +732,7 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("=") + 1);
             strcpy(CurrToken.lexeme, "=");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
@@ -556,7 +755,7 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("!") + 1);
             strcpy(CurrToken.lexeme, "!");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
@@ -619,7 +818,7 @@ TokenInfo getNextToken()
                     CurrToken.lexeme = (char *)malloc(strlen("<--") + 1);
                     strcpy(CurrToken.lexeme, "<--");
                     CurrToken.line = lineno;
-                    CurrToken.type = TK_ERROR;
+                    CurrToken.type = TK_ERROR_ASSIGNOP;
                     return CurrToken;
                 }
             }
@@ -672,7 +871,7 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
-                CurrToken.type = TK_ERROR;
+                CurrToken.type = TK_ERROR_SIZE20;
                 return CurrToken;
             }
         }
@@ -681,7 +880,7 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("#") + 1);
             strcpy(CurrToken.lexeme, "#");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
@@ -713,6 +912,11 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
+                if (strcmp(CurrToken.lexeme, "_main") == 0)
+                {
+                    CurrToken.type = TK_MAIN;
+                    return CurrToken;
+                }
                 CurrToken.type = TK_FUNID;
                 return CurrToken;
             }
@@ -721,7 +925,7 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
-                CurrToken.type = TK_ERROR;
+                CurrToken.type = TK_ERROR_SIZE30;
                 return CurrToken;
             }
         }
@@ -730,7 +934,7 @@ TokenInfo getNextToken()
             CurrToken.lexeme = (char *)malloc(strlen("_") + 1);
             strcpy(CurrToken.lexeme, "_");
             CurrToken.line = lineno;
-            CurrToken.type = TK_ERROR;
+            CurrToken.type = TK_ERROR_SYMBOL;
             return CurrToken;
         }
     }
@@ -758,8 +962,16 @@ TokenInfo getNextToken()
                 {
                     CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+
                     CurrToken.line = lineno;
-                    CurrToken.type = TK_FIELDID;
+                    printf("%s\n", CurrToken.lexeme);
+                    TokenType type = search(mp, CurrToken.lexeme);
+                    if (type == TK_ERROR_PATTERN)
+                        CurrToken.type = TK_FIELDID;
+                    else
+                    {
+                        CurrToken.type = type;
+                    }
                     return CurrToken;
                 }
                 else
@@ -767,7 +979,7 @@ TokenInfo getNextToken()
                     CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                     CurrToken.line = lineno;
-                    CurrToken.type = TK_ERROR;
+                    CurrToken.type = TK_ERROR_SIZE20;
                     return CurrToken;
                 }
             }
@@ -801,7 +1013,7 @@ TokenInfo getNextToken()
                     CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                     CurrToken.line = lineno;
-                    CurrToken.type = TK_ERROR;
+                    CurrToken.type = TK_ERROR_SIZE20;
                     return CurrToken;
                 }
             }
@@ -810,7 +1022,13 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
-                CurrToken.type = TK_FIELDID;
+                TokenType type = search(mp, CurrToken.lexeme);
+                if (type == TK_ERROR_PATTERN)
+                    CurrToken.type = TK_FIELDID;
+                else
+                {
+                    CurrToken.type = type;
+                }
                 return CurrToken;
             }
         }
@@ -827,10 +1045,22 @@ TokenInfo getNextToken()
             }
             if (counter <= 20)
             {
-                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                CurrToken.lexeme = (char *)malloc(forw - curr + 2);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
-                CurrToken.type = TK_FIELDID;
+                CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+                if (CurrToken.lexeme != NULL)
+                {
+                    strncpy(CurrToken.lexeme, current_buffer + curr, forw - curr);
+                    CurrToken.lexeme[forw - curr] = '\0'; // Ensure null-termination
+                }
+                TokenType type = search(mp, CurrToken.lexeme);
+                if (type == TK_ERROR_PATTERN)
+                    CurrToken.type = TK_FIELDID;
+                else
+                {
+                    CurrToken.type = type;
+                }
                 return CurrToken;
             }
             else
@@ -838,13 +1068,14 @@ TokenInfo getNextToken()
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                 CurrToken.line = lineno;
-                CurrToken.type = TK_ERROR;
+                CurrToken.type = TK_ERROR_SIZE20;
                 return CurrToken;
             }
         }
     }
 
-    if ((current_buffer[curr] >= '0') && (current_buffer[curr] <= '9')){
+    if ((current_buffer[curr] >= '0') && (current_buffer[curr] <= '9'))
+    {
         forw++;
         checklimits();
         while ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
@@ -852,67 +1083,77 @@ TokenInfo getNextToken()
             forw++;
             checklimits();
         }
-        if(current_buffer[forw]=='.'){
+        if (current_buffer[forw] == '.')
+        {
             forw++;
             checklimits();
-            if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+            if ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
+            {
                 forw++;
                 checklimits();
-                if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                if ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
+                {
                     forw++;
                     checklimits();
-                    if(current_buffer[forw]=='E'){
+                    if (current_buffer[forw] == 'E')
+                    {
                         forw++;
                         checklimits();
-                        if(current_buffer[forw]=='+' || current_buffer[forw]=='-'){
+                        if (current_buffer[forw] == '+' || current_buffer[forw] == '-')
+                        {
                             forw++;
                             checklimits();
                         }
-                        if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                        if ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
+                        {
                             forw++;
                             checklimits();
-                            if((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9')){
+                            if ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
+                            {
                                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                                 CurrToken.line = lineno;
                                 CurrToken.type = TK_RNUM;
                                 return CurrToken;
                             }
-                            else{
+                            else
+                            {
                                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                                 CurrToken.line = lineno;
-                                CurrToken.type = TK_ERROR;
+                                CurrToken.type = TK_ERROR_PATTERN;
                                 return CurrToken;
                             }
                         }
-                        else{
+                        else
+                        {
                             CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                             strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                             CurrToken.line = lineno;
-                            CurrToken.type = TK_ERROR;
+                            CurrToken.type = TK_ERROR_PATTERN;
                             return CurrToken;
                         }
-
                     }
-                    else{
+                    else
+                    {
                         CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                         strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                         CurrToken.line = lineno;
                         CurrToken.type = TK_RNUM;
                         return CurrToken;
                     }
-
                 }
-                else{
+                else
+                {
                     CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                     CurrToken.line = lineno;
-                    CurrToken.type = TK_ERROR;
+                    CurrToken.type = TK_ERROR_PATTERN;
                     return CurrToken;
                 }
             }
-            else{
+            else
+            {
                 forw--;
                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
@@ -921,7 +1162,8 @@ TokenInfo getNextToken()
                 return CurrToken;
             }
         }
-        else{
+        else
+        {
             CurrToken.lexeme = (char *)malloc(forw - curr + 1);
             strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
             CurrToken.line = lineno;
@@ -931,26 +1173,46 @@ TokenInfo getNextToken()
     }
 }
 
-void checklimits()
-{
-    if (forw > 1023)
-    {
-        fp = getStream(fp, 1024 - curr);
-    }
-}
-
 int main()
 {
-    lineno=0;
+    fp = fopen("test-cases/temporary_test.txt", "r");
+    current_buffer = buffer.buffer1;
+    next_buffer = buffer.buffer2;
+
+    fp = getStream(fp, 0);
+    if (fp == NULL)
+        printf("Error in opening the file\n");
+
+    mp = (struct hashMap *)malloc(sizeof(struct hashMap));
+    initializeHashMap(mp);
+    insertKeyWords(mp);
+    printf("The length of the current_buffer is %lu\n", strlen(current_buffer));
+    lineno = 1;
+    current_buffer[strlen(current_buffer)] = '\0';
     TokenInfo printToken;
-    while (current_buffer[curr] != EOF)
+    while (current_buffer[curr] != '\0')
     {
         printToken = getNextToken();
-        if (printToken.type == TK_ERROR)
+        if (printToken.type == TK_ERROR_SYMBOL)
         {
+            printf("Line no. %d Error: Unknown Symbol <%s>\n", printToken.line, printToken.lexeme);
         }
+        else if (printToken.type == TK_DELIM)
+            continue;
+        else if (printToken.type == TK_ERROR_PATTERN)
+            printf("Line no. %d Error: Unknown Pattern <%s>\n", printToken.line, printToken.lexeme);
+        else if (printToken.type == TK_ERROR_ASSIGNOP)
+            printf("Line no. %d Error: Wrong assignment operator '<--' found, expected '<---'\n", printToken.line);
+        else if (printToken.type == TK_ERROR_SIZE20)
+            printf("Line no. %d Error: Variable Identifier is longer than the prescribed length of 20\n", printToken.line);
+        else if (printToken.type == TK_ERROR_SIZE30)
+            printf("Line no. %d Error: Function/Record Identifier is longer than the prescribed length of 30\n", printToken.line);
         else
+        {
             printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+        }
+        
     }
+
     return 0;
 }
