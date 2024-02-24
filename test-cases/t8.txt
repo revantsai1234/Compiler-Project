@@ -11,3 +11,273 @@ ba b3
 b
 b2bb22222 b3aaaaaa88 aa 
 9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+#define BUFFER_SIZE 1024
+
+typedef enum
+{
+    TK_ASSIGNOP,
+    TK_COMMENT,
+    TK_FIELDID,
+    TK_ID,
+    TK_NUM,
+    TK_RNUM,
+    TK_FUNID,
+    TK_RUID,
+    TK_WITH,
+    TK_PARAMETERS,
+    TK_END,
+    TK_WHILE,
+    TK_UNION,
+    TK_ENDUNION,
+    TK_DEFINETYPE,
+    TK_AS,
+    TK_TYPE,
+    TK_MAIN,
+    TK_GLOBAL,
+    TK_PARAMETER,
+    TK_LIST,
+    TK_SQL,
+    TK_SQR,
+    TK_INPUT,
+    TK_OUTPUT,
+    TK_INT,
+    TK_REAL,
+    TK_COMMA,
+    TK_SEM,
+    TK_COLON,
+    TK_DOT,
+    TK_ENDWHILE,
+    TK_OP,
+    TK_CL,
+    TK_IF,
+    TK_THEN,
+    TK_ENDIF,
+    TK_READ,
+    TK_WRITE,
+    TK_RETURN,
+    TK_PLUS,
+    TK_MINUS,
+    TK_MUL,
+    TK_DIV,
+    TK_CALL,
+    TK_RECORD,
+    TK_ENDRECORD,
+    TK_ELSE,
+    TK_AND,
+    TK_OR,
+    TK_NOT,
+    TK_LT,
+    TK_LE,
+    TK_EQ,
+    TK_GT,
+    TK_GE,
+    TK_NE,
+    TK_ERROR_PATTERN,
+    TK_ERROR_SYMBOL,
+    TK_ERROR_ASSIGNOP,
+    TK_ERROR_SIZE20,
+    TK_ERROR_SIZE30,
+    TK_DELIM
+} TokenType;
+
+typedef struct
+{
+    TokenType type;
+    char *lexeme;
+    int line;
+} TokenInfo;
+
+struct buffer
+{
+    char buffer1[1024];
+    char buffer2[1024];
+};
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+#define BUFFER_SIZE 1024
+
+#define BUFFER_SIZE 1024
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+#define BUFFER_SIZE 1024
+
+typedef enum
+{
+    TK_ASSIGNOP,
+    TK_COMMENT,
+    TK_FIELDID,
+    TK_ID,
+    TK_NUM,
+    TK_RNUM,
+    TK_FUNID,
+    TK_RUID,
+    TK_WITH,
+    TK_PARAMETERS,
+    TK_END,
+    TK_WHILE,
+    TK_UNION,
+    TK_ENDUNION,
+    TK_DEFINETYPE,
+    TK_AS,
+    TK_TYPE,
+    TK_MAIN,
+    TK_GLOBAL,
+    TK_PARAMETER,
+    TK_LIST,
+    TK_SQL,
+    TK_SQR,
+    TK_INPUT,
+    TK_OUTPUT,
+    TK_INT,
+    TK_REAL,
+    TK_COMMA,
+    TK_SEM,
+    TK_COLON,
+    TK_DOT,
+    TK_ENDWHILE,
+    TK_OP,
+    TK_CL,
+    TK_IF,
+    TK_THEN,
+    TK_ENDIF,
+    TK_READ,
+    TK_WRITE,
+    TK_RETURN,
+    TK_PLUS,
+    TK_MINUS,
+    TK_MUL,
+    TK_DIV,
+    TK_CALL,
+    TK_RECORD,
+    TK_ENDRECORD,
+    TK_ELSE,
+    TK_AND,
+    TK_OR,
+    TK_NOT,
+    TK_LT,
+    TK_LE,
+    TK_EQ,
+    TK_GT,
+    TK_GE,
+    TK_NE,
+    TK_ERROR_PATTERN,
+    TK_ERROR_SYMBOL,
+    TK_ERROR_ASSIGNOP,
+    TK_ERROR_SIZE20,
+    TK_ERROR_SIZE30,
+    TK_DELIM
+} TokenType;
+
+typedef struct
+{
+    TokenType type;
+    char *lexeme;
+    int line;
+} TokenInfo;
+
+struct buffer
+{
+    char buffer1[1024];
+    char buffer2[1024];
+};
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+@ @@ @@@ & &&
+&&&           .
+    []! 
+!= = == ===
+> >= >> < <- <@@@ <=# <- <--* <---
+# #A 
+_AA
+_aaa9 _aa9a 
+a %aaa 
+ba b3
+b
+b2bb22222 b3aaaaaa88 aa 
+9 9* 9. 9.3 9.32 9.32E 9.32e 9.32E2 9.32E00 9.32E+ 0.32E-0 9.00e+00
+
+#define BUFFER_SIZE 1024
+
+#define BUFFER_SIZE 1024

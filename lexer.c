@@ -1195,7 +1195,7 @@ TokenInfo getNextToken()
 
 int main()
 {
-    fp = fopen("/home/revant/Desktop/3-2/CoCo/Compiler-Project/test-cases/temporary_test.txt", "r");
+    fp = fopen("/home/revant/Desktop/3-2/CoCo/Compiler-Project/test-cases/t8.txt", "r");
     
     current_buffer = (char*) malloc(sizeof(char)*1024);
     next_buffer = (char*) malloc(sizeof(char)*1024);
@@ -1208,7 +1208,6 @@ int main()
     insertKeyWords(mp);
     lineno = 1;
     // printf("The length of the current buffer is : %lu\n", strlen(current_buffer));
-    current_buffer[strlen(current_buffer)] = '\0';
     TokenInfo printToken;
     while (current_buffer[forw] != '\0')
     {
