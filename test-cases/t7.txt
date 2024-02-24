@@ -1,8 +1,7 @@
-#ifndef TOKEN_H
-#define TOKEN_H
 #define BUFFER_SIZE 1024
 
-typedef enum {
+typedef enum
+{
     TK_ASSIGNOP,
     TK_COMMENT,
     TK_FIELDID,
@@ -39,6 +38,7 @@ typedef enum {
     TK_CL,
     TK_IF,
     TK_THEN,
+    TK_ENDIF,
     TK_READ,
     TK_WRITE,
     TK_RETURN,
@@ -59,12 +59,23 @@ typedef enum {
     TK_GT,
     TK_GE,
     TK_NE,
+    TK_ERROR_PATTERN,
+    TK_ERROR_SYMBOL,
+    TK_ERROR_ASSIGNOP,
+    TK_ERROR_SIZE20,
+    TK_ERROR_SIZE30,
+    TK_DELIM
 } TokenType;
 
-typedef struct {
+typedef struct
+{
     TokenType type;
-    char lexeme[BUFFER_SIZE];
+    char *lexeme;
     int line;
 } TokenInfo;
 
-#endif // TOKEN_H
+struct buffer
+{
+    char buffer1[1024];
+    char buffer2[1024];
+};

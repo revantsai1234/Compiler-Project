@@ -79,11 +79,11 @@ typedef struct
     int line;
 } TokenInfo;
 
-struct buffer
-{
-    char buffer1[1024];
-    char buffer2[1024];
-} buffer;
+// struct buffer
+// {
+//     char buffer1[1024];
+//     char buffer2[1024];
+// } buffer;
 
 const char *getTokenTypeName(TokenType type)
 {
@@ -494,6 +494,7 @@ TokenInfo getNextToken()
             if (current_buffer[forw] == '@')
             {
                 forw++;
+                checklimits();
                 CurrToken.lexeme = (char *)malloc(strlen("@@@") + 1);
                 strcpy(CurrToken.lexeme, "@@@");
                 CurrToken.line = lineno;
@@ -530,6 +531,7 @@ TokenInfo getNextToken()
             if (current_buffer[forw] == '&')
             {
                 forw++;
+                checklimits();
                 CurrToken.lexeme = (char *)malloc(strlen("&&&") + 1);
                 strcpy(CurrToken.lexeme, "&&&");
                 CurrToken.line = lineno;
@@ -558,6 +560,7 @@ TokenInfo getNextToken()
     if (current_buffer[curr] == '*')
     {
         forw++;
+        checklimits();
         CurrToken.lexeme = (char *)malloc(strlen("*") + 1);
         strcpy(CurrToken.lexeme, "*");
         CurrToken.line = lineno;
@@ -565,9 +568,10 @@ TokenInfo getNextToken()
         return CurrToken;
     }
 
-    if (current_buffer[forw] == '/')
+    if (current_buffer[curr] == '/')
     {
         forw++;
+        checklimits();
         CurrToken.lexeme = (char *)malloc(strlen("/") + 1);
         strcpy(CurrToken.lexeme, "/");
         CurrToken.line = lineno;
@@ -705,11 +709,11 @@ TokenInfo getNextToken()
 
         CurrToken.line = lineno;
         CurrToken.type = TK_COMMENT;
-
-        while (current_buffer[forw] != '\n' || current_buffer[forw] != '\0')
-        {
-            printf("%c\n", current_buffer[forw]);
-            break;
+        while (current_buffer[forw] != '\n')
+        {   
+            if(current_buffer[forw] == '\0'){
+                break;
+            }
             forw++;
             checklimits();
         }
@@ -723,6 +727,7 @@ TokenInfo getNextToken()
         if (current_buffer[forw] == '=')
         {
             forw++;
+            checklimits();
             CurrToken.lexeme = (char *)malloc(strlen("==") + 1);
             strcpy(CurrToken.lexeme, "==");
             CurrToken.line = lineno;
@@ -746,6 +751,7 @@ TokenInfo getNextToken()
         if (current_buffer[forw] == '=')
         {
             forw++;
+            checklimits();
             CurrToken.lexeme = (char *)malloc(strlen("!=") + 1);
             strcpy(CurrToken.lexeme, "!=");
             CurrToken.line = lineno;
@@ -769,6 +775,7 @@ TokenInfo getNextToken()
         if (current_buffer[forw] == '=')
         {
             forw++;
+            checklimits();
             CurrToken.lexeme = (char *)malloc(strlen(">=") + 1);
             strcpy(CurrToken.lexeme, ">=");
             CurrToken.line = lineno;
@@ -792,6 +799,7 @@ TokenInfo getNextToken()
         if (current_buffer[forw] == '=')
         {
             forw++;
+            checklimits();
             CurrToken.lexeme = (char *)malloc(strlen("<=") + 1);
             strcpy(CurrToken.lexeme, "<=");
             CurrToken.line = lineno;
@@ -809,6 +817,7 @@ TokenInfo getNextToken()
                 if (current_buffer[forw] == '-')
                 {
                     forw++;
+                    checklimits();
                     CurrToken.lexeme = (char *)malloc(strlen("<---") + 1);
                     strcpy(CurrToken.lexeme, "<---");
                     CurrToken.line = lineno;
@@ -1175,6 +1184,7 @@ TokenInfo getNextToken()
         }
     }
     forw++;
+    checklimits();
     CurrToken.type = TK_ERROR_SYMBOL;
     CurrToken.lexeme = (char *)malloc(forw - curr + 1);
     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
@@ -1196,11 +1206,11 @@ int main()
     mp = (struct hashMap *)malloc(sizeof(struct hashMap));
     initializeHashMap(mp);
     insertKeyWords(mp);
-    printf("The length of the current buffer is %lu\n", strlen(current_buffer));
     lineno = 1;
+    // printf("The length of the current buffer is : %lu\n", strlen(current_buffer));
     current_buffer[strlen(current_buffer)] = '\0';
     TokenInfo printToken;
-    while (current_buffer[curr] != '\0')
+    while (current_buffer[forw] != '\0')
     {
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
