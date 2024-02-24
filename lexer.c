@@ -449,6 +449,7 @@ FILE *getStream(FILE *fp, int space_to_fill)
 
 void checklimits()
 {
+    //printf("The value of forw is: %d\n", forw);
     if (forw > 1023)
     {
         fp = getStream(fp, 1024 - curr);
@@ -647,7 +648,6 @@ TokenInfo getNextToken()
         CurrToken.lexeme = (char *)malloc(strlen(":") + 1);
         strcpy(CurrToken.lexeme, ":");
         CurrToken.line = lineno;
-        printf("%c\n", current_buffer[5]);
 
         CurrToken.type = TK_COLON;
         return CurrToken;
@@ -706,8 +706,10 @@ TokenInfo getNextToken()
         CurrToken.line = lineno;
         CurrToken.type = TK_COMMENT;
 
-        while (current_buffer[forw] != '\n')
+        while (current_buffer[forw] != '\n' || current_buffer[forw] != '\0')
         {
+            printf("%c\n", current_buffer[forw]);
+            break;
             forw++;
             checklimits();
         }
@@ -964,7 +966,6 @@ TokenInfo getNextToken()
                     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
 
                     CurrToken.line = lineno;
-                    printf("%s\n", CurrToken.lexeme);
                     TokenType type = search(mp, CurrToken.lexeme);
                     if (type == TK_ERROR_PATTERN)
                         CurrToken.type = TK_FIELDID;
@@ -1095,7 +1096,7 @@ TokenInfo getNextToken()
                 {
                     forw++;
                     checklimits();
-                    if (current_buffer[forw] == 'E')
+                    if (current_buffer[forw] == 'E' || current_buffer[forw] == 'e')
                     {
                         forw++;
                         checklimits();
@@ -1110,6 +1111,8 @@ TokenInfo getNextToken()
                             checklimits();
                             if ((current_buffer[forw] >= '0') && (current_buffer[forw] <= '9'))
                             {
+                                forw++;
+                                checklimits();
                                 CurrToken.lexeme = (char *)malloc(forw - curr + 1);
                                 strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
                                 CurrToken.line = lineno;
@@ -1171,22 +1174,29 @@ TokenInfo getNextToken()
             return CurrToken;
         }
     }
+    forw++;
+    CurrToken.type = TK_ERROR_SYMBOL;
+    CurrToken.lexeme = (char *)malloc(forw - curr + 1);
+    strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
+    CurrToken.line = lineno;
+    return CurrToken;
+
 }
 
 int main()
 {
-    fp = fopen("test-cases/temporary_test.txt", "r");
-    current_buffer = buffer.buffer1;
-    next_buffer = buffer.buffer2;
+    fp = fopen("/home/revant/Desktop/3-2/CoCo/Compiler-Project/test-cases/temporary_test.txt", "r");
+    
+    current_buffer = (char*) malloc(sizeof(char)*1024);
+    next_buffer = (char*) malloc(sizeof(char)*1024);
 
     fp = getStream(fp, 0);
     if (fp == NULL)
         printf("Error in opening the file\n");
-
     mp = (struct hashMap *)malloc(sizeof(struct hashMap));
     initializeHashMap(mp);
     insertKeyWords(mp);
-    printf("The length of the current_buffer is %lu\n", strlen(current_buffer));
+    printf("The length of the current buffer is %lu\n", strlen(current_buffer));
     lineno = 1;
     current_buffer[strlen(current_buffer)] = '\0';
     TokenInfo printToken;
