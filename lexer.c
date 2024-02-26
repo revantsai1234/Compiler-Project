@@ -81,8 +81,8 @@ typedef struct
 
 // struct buffer
 // {
-//     char buffer1[1024];
-//     char buffer2[1024];
+// char buffer1[1024];
+// char buffer2[1024];
 // } buffer;
 
 const char *getTokenTypeName(TokenType type)
@@ -424,19 +424,23 @@ char *current_buffer, *next_buffer;
 int curr, forw, lineno;
 FILE *fp;
 struct hashMap *mp;
+size_t char_read;
 
 FILE *getStream(FILE *fp, int space_to_fill)
 {
+    free(next_buffer);
+    next_buffer = (char *)malloc(sizeof(char) * 1024);
     for (int i = 0; i < space_to_fill; i++)
     {
         *(next_buffer + i) = current_buffer[curr++];
     }
 
-    size_t char_read = fread(next_buffer + space_to_fill, 1, 1024 - space_to_fill, fp);
+    char_read = fread(next_buffer + space_to_fill, 1, 1024 - space_to_fill, fp);
     if (char_read == -1)
     {
         printf("Error opening file.");
     }
+    char_read += space_to_fill;
     char *temp;
     temp = current_buffer;
     current_buffer = next_buffer;
@@ -449,7 +453,7 @@ FILE *getStream(FILE *fp, int space_to_fill)
 
 void checklimits()
 {
-    //printf("The value of forw is: %d\n", forw);
+    // printf("The value of forw is: %d\n", forw);
     if (forw > 1023)
     {
         fp = getStream(fp, 1024 - curr);
@@ -710,8 +714,9 @@ TokenInfo getNextToken()
         CurrToken.line = lineno;
         CurrToken.type = TK_COMMENT;
         while (current_buffer[forw] != '\n')
-        {   
-            if(current_buffer[forw] == '\0'){
+        {
+            if (current_buffer[forw] == '\0')
+            {
                 break;
             }
             forw++;
@@ -1190,15 +1195,14 @@ TokenInfo getNextToken()
     strncpy(CurrToken.lexeme, current_buffer + (curr), forw - curr);
     CurrToken.line = lineno;
     return CurrToken;
-
 }
 
 int main()
 {
-    fp = fopen("/home/revant/Desktop/3-2/CoCo/Compiler-Project/test-cases/t8.txt", "r");
-    
-    current_buffer = (char*) malloc(sizeof(char)*1024);
-    next_buffer = (char*) malloc(sizeof(char)*1024);
+    fp = fopen("t7.txt", "r");
+
+    current_buffer = (char *)malloc(sizeof(char) * 1024);
+    next_buffer = (char *)malloc(sizeof(char) * 1024);
 
     fp = getStream(fp, 0);
     if (fp == NULL)
@@ -1209,7 +1213,7 @@ int main()
     lineno = 1;
     // printf("The length of the current buffer is : %lu\n", strlen(current_buffer));
     TokenInfo printToken;
-    while (current_buffer[forw] != '\0')
+    while ((feof(fp) == 0) || (forw < char_read))
     {
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
@@ -1230,8 +1234,6 @@ int main()
         {
             printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
         }
-        
     }
-
     return 0;
 }
