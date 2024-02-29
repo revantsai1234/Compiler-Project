@@ -439,8 +439,20 @@ FILE *getStream(FILE *fp, int space_to_fill)
     if (char_read == -1)
     {
         printf("Error opening file.");
+        return fp;
     }
     char_read += space_to_fill;
+    if(char_read < 1024)
+    {
+        char *temp = (char*) malloc(char_read*sizeof(char));
+        memcpy(temp,next_buffer,char_read);
+        // printf("%s",temp);
+        free(next_buffer);
+        next_buffer = current_buffer;
+        current_buffer = temp;
+        // printf("%s",current_buffer);
+        return fp; 
+    }
     char *temp;
     temp = current_buffer;
     current_buffer = next_buffer;
@@ -1199,7 +1211,7 @@ TokenInfo getNextToken()
 
 int main()
 {
-    fp = fopen("t7.txt", "r");
+    fp = fopen("test-cases/t9.txt", "r");
 
     current_buffer = (char *)malloc(sizeof(char) * 1024);
     next_buffer = (char *)malloc(sizeof(char) * 1024);
@@ -1213,7 +1225,31 @@ int main()
     lineno = 1;
     // printf("The length of the current buffer is : %lu\n", strlen(current_buffer));
     TokenInfo printToken;
-    while ((feof(fp) == 0) || (forw < char_read))
+    while (feof(fp) == 0)
+    {
+        printToken = getNextToken();
+        if (printToken.type == TK_ERROR_SYMBOL)
+        {
+            printf("Line no. %d Error: Unknown Symbol <%s>\n", printToken.line, printToken.lexeme);
+        }
+        else if (printToken.type == TK_DELIM)
+            continue;
+        else if (printToken.type == TK_ERROR_PATTERN)
+            printf("Line no. %d Error: Unknown Pattern <%s>\n", printToken.line, printToken.lexeme);
+        else if (printToken.type == TK_ERROR_ASSIGNOP)
+            printf("Line no. %d Error: Wrong assignment operator '<--' found, expected '<---'\n", printToken.line);
+        else if (printToken.type == TK_ERROR_SIZE20)
+            printf("Line no. %d Error: Variable Identifier is longer than the prescribed length of 20\n", printToken.line);
+        else if (printToken.type == TK_ERROR_SIZE30)
+            printf("Line no. %d Error: Function/Record Identifier is longer than the prescribed length of 30\n", printToken.line);
+        else
+        {
+            printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+        }
+    }
+    // printf("The forw and char_read is : %d %lu\n", forw, char_read);
+    forw=curr=0;
+    while((forw<char_read))
     {
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
