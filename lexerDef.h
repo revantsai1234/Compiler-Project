@@ -1,12 +1,12 @@
 #ifndef LEXERDEF_H
 #define LEXERDEF_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #define BUFFER_SIZE 1024
 
-typedef enum
-{
+typedef enum {
     TK_ASSIGNOP,
     TK_COMMENT,
     TK_FIELDID,
@@ -72,9 +72,7 @@ typedef enum
     TK_DELIM
 } TokenType;
 
-
-typedef struct
-{
+typedef struct {
     TokenType type;
     char *lexeme;
     int line;
@@ -90,5 +88,11 @@ struct hashMap {
     int numOfElements, capacity;
     struct node **arr;
 };
+
+extern char *current_buffer, *next_buffer;
+extern int curr, forw, lineno;
+extern FILE *fp;
+extern struct hashMap *mp;
+extern size_t char_read;
 
 #endif // LEXERDEF_H
