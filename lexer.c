@@ -1,8 +1,16 @@
 #include "lexer.h"
 #include <string.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-const char *getTokenTypeName(TokenType type)
+char *current_buffer = NULL, *next_buffer = NULL; // Buffers to store the current and next 1024 characters
+int curr = 0, forw = 0, lineno = 1;             // Pointers to the current and next character in the buffer
+FILE *fp = NULL;                                // File pointer to the input file
+struct hashMap *mp = NULL;                      // Hashmap to store the keywords
+size_t char_read = 0;                           // Number of characters read from the file
+
+const char *getTokenTypeName(TokenType type) // Function to return the string representation of the token
 {
     switch (type)
     {
@@ -137,7 +145,7 @@ const char *getTokenTypeName(TokenType type)
     }
 }
 
-void setNode(struct node *node, char *key, TokenType token)
+void setNode(struct node *node, char *key, TokenType token) // Function to set the values of a node
 {
     node->key = key;
     node->token = token;
@@ -145,7 +153,7 @@ void setNode(struct node *node, char *key, TokenType token)
     return;
 };
 
-void initializeHashMap(struct hashMap *mp)
+void initializeHashMap(struct hashMap *mp) // Function to initialize the hashmap
 {
 
     mp->capacity = 100;
@@ -155,7 +163,7 @@ void initializeHashMap(struct hashMap *mp)
     return;
 }
 
-int hashFunction(struct hashMap *mp, char *key)
+int hashFunction(struct hashMap *mp, char *key) // Function to calculate the hash value of a key
 {
     int bucketIndex;
     int sum = 0, factor = 31;
@@ -169,7 +177,7 @@ int hashFunction(struct hashMap *mp, char *key)
     return bucketIndex;
 }
 
-void insert(struct hashMap *mp, char *key, TokenType token)
+void insert(struct hashMap *mp, char *key, TokenType token) // Function to insert a key-value pair into the hashmap
 {
     int bucketIndex = hashFunction(mp, key);
     struct node *newNode = (struct node *)malloc(
@@ -191,7 +199,7 @@ void insert(struct hashMap *mp, char *key, TokenType token)
     return;
 }
 
-TokenType search(struct hashMap *mp, char *key)
+TokenType search(struct hashMap *mp, char *key) // Function to search for a key in the hashmap
 {
     int bucketIndex = hashFunction(mp, key);
     struct node *bucketHead = mp->arr[bucketIndex];
@@ -208,7 +216,7 @@ TokenType search(struct hashMap *mp, char *key)
     return TK_ERROR_PATTERN;
 }
 
-void insertKeyWords(struct hashMap *mp)
+void insertKeyWords(struct hashMap *mp) // Function to insert the keywords into the hashmap
 {
     insert(mp, "with", TK_WITH);
     insert(mp, "parameters", TK_PARAMETERS);
@@ -239,13 +247,7 @@ void insertKeyWords(struct hashMap *mp)
     insert(mp, "else", TK_ELSE);
 }
 
-char *current_buffer, *next_buffer;
-int curr, forw, lineno;
-FILE *fp;
-struct hashMap *mp;
-size_t char_read;
-
-FILE *getStream(FILE *fp, int space_to_fill)
+FILE *getStream(FILE *fp, int space_to_fill) // Function to fill the buffer with the next 1024 characters
 {
     free(next_buffer);
     next_buffer = (char *)malloc(sizeof(char) * 1024);
@@ -280,7 +282,7 @@ FILE *getStream(FILE *fp, int space_to_fill)
     return fp;
 }
 
-void checklimits()
+void checklimits() // Function to check if the buffer has reached its limit
 {
     if (forw > 1023)
     {
@@ -289,7 +291,19 @@ void checklimits()
     return;
 }
 
-TokenInfo getNextToken()
+long getFileSize(FILE * fp) {
+    if (fp == NULL) {
+        perror("Error opening file");
+        return -1;
+    }
+
+    fseek(fp, 0, SEEK_END); // Move to the end of the file
+    long size = ftell(fp);  // Get the current byte offset in the file
+
+    return size;  // Return the size
+}
+
+TokenInfo getNextToken() // Function to get the next token from the input file
 {
     curr = forw;
     checklimits();
@@ -1025,10 +1039,28 @@ TokenInfo getNextToken()
     return CurrToken;
 }
 
-void removeComments(char *testcaseFile, char *cleanFile)
+void printFileContents(FILE * fp) {
+    if (fp == NULL) {
+        perror("Failed to open file");
+        return;
+    }
+
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        printf("%s\n", line);
+    }
+
+    free(line);
+}
+
+
+void removeComments(char *testcaseFile) // Function to remove comments from the input file
 {
-    FILE *inputFile = fopen(testcaseFile, "r");
-    FILE *outputFile = fopen(cleanFile, "w");
+    FILE *inputFile = fopen(testcaseFile, "r"); // Open the input file
+    FILE *outputFile = fopen("cleanFile.txt", "w"); // Create a new file to store the contents of the input file without comments
 
     if (inputFile == NULL || outputFile == NULL)
     {
@@ -1050,53 +1082,79 @@ void removeComments(char *testcaseFile, char *cleanFile)
         }
         fprintf(outputFile, "%s", line);
     }
-
+    fclose(outputFile);
+    outputFile = fopen("cleanFile.txt", "r"); // Open the file in read mode
+    printFileContents(outputFile);
+    
     free(line);
     fclose(inputFile);
     fclose(outputFile);
 }
 
-int main()
-{
-    const char *filepath = "test-cases/t8.txt";
+void printLexemes(char *fileName){ // Function to print the lexemes and tokens
 
-    // removeComments("test-cases/t8.txt", "test-cases/cleaned-t8.txt");
+    const char *filepath = fileName;
+    fp = fopen(fileName, "r");
 
-    fp = fopen("test-cases/t8.txt", "r");
+    current_buffer = (char *)malloc(sizeof(char) * 1024); // Allocate memory for the buffer
+    next_buffer = (char *)malloc(sizeof(char) * 1024);   // Allocate memory for the buffer
 
-    current_buffer = (char *)malloc(sizeof(char) * 1024);
-    next_buffer = (char *)malloc(sizeof(char) * 1024);
-
-    fp = getStream(fp, 0);
+    fp = getStream(fp, 0); // Fill the buffer with the first 1024 characters
     if (fp == NULL)
         printf("Error in opening the file\n");
 
-    mp = (struct hashMap *)malloc(sizeof(struct hashMap));
-    initializeHashMap(mp);
-    insertKeyWords(mp);
-    lineno = 1;
+    mp = (struct hashMap *)malloc(sizeof(struct hashMap)); // Allocate memory for the hashmap
+    initializeHashMap(mp);                               // Initialize the hashmap
+    insertKeyWords(mp);                                  // Insert the keywords into the hashmap
+    lineno = 1;                                          // Initialize the line number to 1
 
-    TokenInfo printToken;
+    FILE *new = fopen("lexemeToParser.txt", "w"); // or "a" for appending
+    if (new == NULL) {
+        perror("Failed to open file");
+        return; // or handle the error as necessary
+    }
+    TokenInfo printToken; // Variable to store the token to be printed
     while (feof(fp) == 0)
     {
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
         {
-            printf("Line no. %d Error: Unknown Symbol <%s>\n", printToken.line, printToken.lexeme);
+            printf("Line no. %-8d | \033[31mError: Unknown Symbol <%s>\033[0m\n", printToken.line, printToken.lexeme);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SYMBOL", printToken.line);
         }
         else if (printToken.type == TK_DELIM)
             continue;
-        else if (printToken.type == TK_ERROR_PATTERN)
-            printf("Line no. %d Error: Unknown Pattern <%s>\n", printToken.line, printToken.lexeme);
-        else if (printToken.type == TK_ERROR_ASSIGNOP)
-            printf("Line no. %d Error: Wrong assignment operator '<--' found, expected '<---'\n", printToken.line);
-        else if (printToken.type == TK_ERROR_SIZE20)
-            printf("Line no. %d Error: Variable Identifier is longer than the prescribed length of 20\n", printToken.line);
-        else if (printToken.type == TK_ERROR_SIZE30)
-            printf("Line no. %d Error: Function/Record Identifier is longer than the prescribed length of 30\n", printToken.line);
+        else if (printToken.type == TK_ERROR_PATTERN){
+            printf("\033[31mLine no. %-8d | Error: Unknown Pattern <%s>\033[0m\n", printToken.line, printToken.lexeme);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_PATTERN", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_ASSIGNOP){
+            char temp[70];
+            strcpy(temp, "Error: Wrong assignment operator '<--' found, expected '<---'");
+            printf("\033[31mLine no. %-8d | %20s\033[0m\n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_ASSIGNOP", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_SIZE20){
+            char temp[70];
+            strcpy(temp, "Error: Variable Identifier is longer than the prescribed length of 20");
+            printf("\033[31mLine no. %-8d | %40s\033[0m\n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SIZE20", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_SIZE30){
+            char temp[80];
+            strcpy(temp, "Error: Function/Record Identifier is longer than the prescribed length of 30");
+            printf("\033[31mLine no. %-8d | %40s\033[0m \n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SIZE30", printToken.line);
+        }
         else
         {
-            printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+            printf("Line no. %-8d | Lexeme %-25s | Token %-40s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+            if(printToken.type == TK_COMMENT){
+                continue;
+            }
+            else{
+                fprintf(new, "%s,%s,%d\n", printToken.lexeme, getTokenTypeName(printToken.type), printToken.line);
+            }
         }
     }
     forw = curr = 0;
@@ -1105,22 +1163,43 @@ int main()
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
         {
-            printf("Line no. %d Error: Unknown Symbol <%s>\n", printToken.line, printToken.lexeme);
+            printf("\033[31mLine no. %-8d | Error: Unknown Symbol <%s>\033[0m\n", printToken.line, printToken.lexeme);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SYMBOL", printToken.line);
         }
         else if (printToken.type == TK_DELIM)
             continue;
-        else if (printToken.type == TK_ERROR_PATTERN)
-            printf("Line no. %d Error: Unknown Pattern <%s>\n", printToken.line, printToken.lexeme);
-        else if (printToken.type == TK_ERROR_ASSIGNOP)
-            printf("Line no. %d Error: Wrong assignment operator '<--' found, expected '<---'\n", printToken.line);
-        else if (printToken.type == TK_ERROR_SIZE20)
-            printf("Line no. %d Error: Variable Identifier is longer than the prescribed length of 20\n", printToken.line);
-        else if (printToken.type == TK_ERROR_SIZE30)
-            printf("Line no. %d Error: Function/Record Identifier is longer than the prescribed length of 30\n", printToken.line);
+        else if (printToken.type == TK_ERROR_PATTERN){
+            printf("\033[31mLine no. %-8d | Error: Unknown Pattern <%s>\033[0m\n", printToken.line, printToken.lexeme);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_PATTERN", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_ASSIGNOP){
+            char temp[70];
+            strcpy(temp, "Error: Wrong assignment operator '<--' found, expected '<---'");
+            printf("\033[31mLine no. %-8d | %20s\033[0m\n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_ASSIGNOP", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_SIZE20){
+            char temp[70];
+            strcpy(temp, "Error: Variable Identifier is longer than the prescribed length of 20");
+            printf("\033[31mLine no. %-8d | %20s\033[0m\n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SIZE20", printToken.line);
+        }
+        else if (printToken.type == TK_ERROR_SIZE30){
+            char temp[80];
+            strcpy(temp, "Error: Function/Record Identifier is longer than the prescribed length of 30");
+            printf("\033[31mLine no. %-8d | %20s\033[0m \n", printToken.line, temp);
+            fprintf(new, "%s,%s,%d\n", printToken.lexeme, "TK_ERROR_SIZE30", printToken.line);
+        }
         else
         {
-            printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+            printf("Line no. %-8d | Lexeme %-25s | Token %-40s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
+            if(printToken.type == TK_COMMENT){
+                continue;
+            }
+            else{
+                fprintf(new, "%s,%s,%d\n", printToken.lexeme, getTokenTypeName(printToken.type), printToken.line);
+            }
         }
     }
-    return 0;
+    fclose(new);
 }
