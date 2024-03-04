@@ -1,89 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "lexerDef.h"
 #include <string.h>
 #include <stdbool.h>
-
-#define BUFFER_SIZE 1024
-
-typedef enum
-{
-    TK_ASSIGNOP,
-    TK_COMMENT,
-    TK_FIELDID,
-    TK_ID,
-    TK_NUM,
-    TK_RNUM,
-    TK_FUNID,
-    TK_RUID,
-    TK_WITH,
-    TK_PARAMETERS,
-    TK_END,
-    TK_WHILE,
-    TK_UNION,
-    TK_ENDUNION,
-    TK_DEFINETYPE,
-    TK_AS,
-    TK_TYPE,
-    TK_MAIN,
-    TK_GLOBAL,
-    TK_PARAMETER,
-    TK_LIST,
-    TK_SQL,
-    TK_SQR,
-    TK_INPUT,
-    TK_OUTPUT,
-    TK_INT,
-    TK_REAL,
-    TK_COMMA,
-    TK_SEM,
-    TK_COLON,
-    TK_DOT,
-    TK_ENDWHILE,
-    TK_OP,
-    TK_CL,
-    TK_IF,
-    TK_THEN,
-    TK_ENDIF,
-    TK_READ,
-    TK_WRITE,
-    TK_RETURN,
-    TK_PLUS,
-    TK_MINUS,
-    TK_MUL,
-    TK_DIV,
-    TK_CALL,
-    TK_RECORD,
-    TK_ENDRECORD,
-    TK_ELSE,
-    TK_AND,
-    TK_OR,
-    TK_NOT,
-    TK_LT,
-    TK_LE,
-    TK_EQ,
-    TK_GT,
-    TK_GE,
-    TK_NE,
-    TK_ERROR_PATTERN,
-    TK_ERROR_SYMBOL,
-    TK_ERROR_ASSIGNOP,
-    TK_ERROR_SIZE20,
-    TK_ERROR_SIZE30,
-    TK_DELIM
-} TokenType;
-
-typedef struct
-{
-    TokenType type;
-    char *lexeme;
-    int line;
-} TokenInfo;
-
-// struct buffer
-// {
-// char buffer1[1024];
-// char buffer2[1024];
-// } buffer;
 
 const char *getTokenTypeName(TokenType type)
 {
@@ -220,18 +137,6 @@ const char *getTokenTypeName(TokenType type)
     }
 }
 
-// Linked List node
-struct node
-{
-
-    // key is string
-    char *key;
-    // value is also string
-    TokenType token;
-    struct node *next;
-};
-
-// like constructor
 void setNode(struct node *node, char *key, TokenType token)
 {
     node->key = key;
@@ -240,25 +145,12 @@ void setNode(struct node *node, char *key, TokenType token)
     return;
 };
 
-struct hashMap
-{
-
-    // Current number of elements in hashMap
-    // and capacity of hashMap
-    int numOfElements, capacity;
-
-    // hold base address array of linked list
-    struct node **arr;
-};
-
 void initializeHashMap(struct hashMap *mp)
 {
 
-    // Default capacity in this case
     mp->capacity = 100;
     mp->numOfElements = 0;
 
-    // array of size = 1
     mp->arr = (struct node **)malloc(sizeof(struct node *) * mp->capacity);
     return;
 }
@@ -269,15 +161,7 @@ int hashFunction(struct hashMap *mp, char *key)
     int sum = 0, factor = 31;
     for (int i = 0; i < strlen(key); i++)
     {
-
-        // sum = sum + (ascii value of
-        // char * (primeNumber ^ x))...
-        // where x = 1, 2, 3....n
         sum = ((sum % mp->capacity) + (((int)key[i]) * factor) % mp->capacity) % mp->capacity;
-
-        // factor = factor * prime
-        // number....(prime
-        // number) ^ x
         factor = ((factor % __INT16_MAX__) * (31 % __INT16_MAX__)) % __INT16_MAX__;
     }
 
@@ -287,104 +171,39 @@ int hashFunction(struct hashMap *mp, char *key)
 
 void insert(struct hashMap *mp, char *key, TokenType token)
 {
-
-    // Getting bucket index for the given
-    // key - value pair
     int bucketIndex = hashFunction(mp, key);
     struct node *newNode = (struct node *)malloc(
 
-        // Creating a new node
         sizeof(struct node));
 
-    // Setting value of node
     setNode(newNode, key, token);
 
-    // Bucket index is empty....no collision
     if (mp->arr[bucketIndex] == NULL)
     {
         mp->arr[bucketIndex] = newNode;
     }
 
-    // Collision
     else
     {
-
-        // Adding newNode at the head of
-        // linked list which is present
-        // at bucket index....insertion at
-        // head in linked list
         newNode->next = mp->arr[bucketIndex];
         mp->arr[bucketIndex] = newNode;
     }
     return;
 }
 
-void delete(struct hashMap *mp, char *key)
-{
-
-    // Getting bucket index for the
-    // given key
-    int bucketIndex = hashFunction(mp, key);
-
-    struct node *prevNode = NULL;
-
-    // Points to the head of
-    // linked list present at
-    // bucket index
-    struct node *currNode = mp->arr[bucketIndex];
-
-    while (currNode != NULL)
-    {
-
-        // Key is matched at delete this
-        // node from linked list
-        if (strcmp(key, currNode->key) == 0)
-        {
-
-            // Head node
-            // deletion
-            if (currNode == mp->arr[bucketIndex])
-            {
-                mp->arr[bucketIndex] = currNode->next;
-            }
-
-            // Last node or middle node
-            else
-            {
-                prevNode->next = currNode->next;
-            }
-            free(currNode);
-            break;
-        }
-        prevNode = currNode;
-        currNode = currNode->next;
-    }
-    return;
-}
-
 TokenType search(struct hashMap *mp, char *key)
 {
-
-    // Getting the bucket index
-    // for the given key
     int bucketIndex = hashFunction(mp, key);
-    // Head of the linked list
-    // present at bucket index
-
     struct node *bucketHead = mp->arr[bucketIndex];
 
     while (bucketHead != NULL)
     {
-        // Key is found in the hashMap
         if (strcmp(bucketHead->key, key) == 0)
         {
             return bucketHead->token;
         }
         bucketHead = bucketHead->next;
     }
-
-    // If no key found in the hashMap
-    // equal to the given key
     char *errorMssg = (char *)malloc(sizeof(char) * 25);
     return TK_ERROR_PATTERN;
 }
@@ -442,16 +261,14 @@ FILE *getStream(FILE *fp, int space_to_fill)
         return fp;
     }
     char_read += space_to_fill;
-    if(char_read < 1024)
+    if (char_read < 1024)
     {
-        char *temp = (char*) malloc(char_read*sizeof(char));
-        memcpy(temp,next_buffer,char_read);
-        // printf("%s",temp);
+        char *temp = (char *)malloc(char_read * sizeof(char));
+        memcpy(temp, next_buffer, char_read);
         free(next_buffer);
         next_buffer = current_buffer;
         current_buffer = temp;
-        // printf("%s",current_buffer);
-        return fp; 
+        return fp;
     }
     char *temp;
     temp = current_buffer;
@@ -465,7 +282,6 @@ FILE *getStream(FILE *fp, int space_to_fill)
 
 void checklimits()
 {
-    // printf("The value of forw is: %d\n", forw);
     if (forw > 1023)
     {
         fp = getStream(fp, 1024 - curr);
@@ -1209,9 +1025,44 @@ TokenInfo getNextToken()
     return CurrToken;
 }
 
+void removeComments(char *testcaseFile, char *cleanFile)
+{
+    FILE *inputFile = fopen(testcaseFile, "r");
+    FILE *outputFile = fopen(cleanFile, "w");
+
+    if (inputFile == NULL || outputFile == NULL)
+    {
+        printf("Error opening files.\n");
+        return;
+    }
+
+    char *line = NULL;
+    size_t bufferSize = 0;
+    size_t charactersRead;
+
+    while ((charactersRead = getline(&line, &bufferSize, inputFile)) != -1)
+    {
+        char *commentPos = strchr(line, '%');
+        if (commentPos != NULL)
+        {
+            *commentPos = '\n';
+            *(commentPos + 1) = '\0';
+        }
+        fprintf(outputFile, "%s", line);
+    }
+
+    free(line);
+    fclose(inputFile);
+    fclose(outputFile);
+}
+
 int main()
 {
-    fp = fopen("test-cases/t9.txt", "r");
+    const char *filepath = "test-cases/t8.txt";
+
+    // removeComments("test-cases/t8.txt", "test-cases/cleaned-t8.txt");
+
+    fp = fopen("test-cases/t8.txt", "r");
 
     current_buffer = (char *)malloc(sizeof(char) * 1024);
     next_buffer = (char *)malloc(sizeof(char) * 1024);
@@ -1219,11 +1070,12 @@ int main()
     fp = getStream(fp, 0);
     if (fp == NULL)
         printf("Error in opening the file\n");
+
     mp = (struct hashMap *)malloc(sizeof(struct hashMap));
     initializeHashMap(mp);
     insertKeyWords(mp);
     lineno = 1;
-    // printf("The length of the current buffer is : %lu\n", strlen(current_buffer));
+
     TokenInfo printToken;
     while (feof(fp) == 0)
     {
@@ -1247,9 +1099,8 @@ int main()
             printf("Line no. %d Lexeme %s Token %s\n", printToken.line, printToken.lexeme, getTokenTypeName(printToken.type));
         }
     }
-    // printf("The forw and char_read is : %d %lu\n", forw, char_read);
-    forw=curr=0;
-    while((forw<char_read))
+    forw = curr = 0;
+    while ((forw < char_read))
     {
         printToken = getNextToken();
         if (printToken.type == TK_ERROR_SYMBOL)
