@@ -5,6 +5,7 @@
 
 typedef struct node *NODE;
 typedef struct head_node *HEAD_NODE;
+#define GRAMMAR_RULES 52
 
 typedef enum
 {
@@ -116,7 +117,8 @@ typedef enum
     TK_EQ = 105,
     TK_GT = 106,
     TK_GE = 107,
-    TK_NE = 108
+    TK_NE = 108,
+    StackSymbol = 109
 } TokenType;
 
 TokenType getTokenTypeFromString(char *string)
@@ -339,6 +341,8 @@ TokenType getTokenTypeFromString(char *string)
         return TK_GE;
     else if (strcmp(string, "TK_NE") == 0)
         return TK_NE;
+    else if(strcmp(string, "Dollar Symbol") == 0)
+        return StackSymbol;
     else
         return -1;
 }
@@ -565,6 +569,8 @@ const char *getStringFromToken(TokenType token)
         return "TK_GE";
     case TK_NE:
         return "TK_NE";
+    case StackSymbol:
+        return "$";
     default:
         return "Unrecognized Token";
     }
@@ -583,11 +589,11 @@ struct node
     bool isT;
 };
 
-HEAD_NODE grammar[52];
+HEAD_NODE grammar[GRAMMAR_RULES];
 int grammar_filler = 0;
 void GrammarReader(FILE *fp)
 {
-    for (int i = 0; i < 52; i++)
+    for (int i = 0; i < GRAMMAR_RULES; i++)
     {
         HEAD_NODE nt = (HEAD_NODE)malloc(sizeof(struct head_node));
         nt->epsilon_trans = false;
@@ -681,7 +687,7 @@ void GrammarReader(FILE *fp)
 
 bool checkTerminal(TokenType token)
 {
-    if (token > 51)
+    if (token > (GRAMMAR_RULES - 1))
     {
         return true;
     }
@@ -761,8 +767,8 @@ void ComputeFirst(HEAD_NODE head_entry)
 
 FirstEntry *ComputeFirstTable(HEAD_NODE *grammar)
 {
-    FirstTable = (FirstEntry *)malloc(52 * (sizeof(FirstEntry)));
-    for (int i = 0; i < 52; i++)
+    FirstTable = (FirstEntry *)malloc(GRAMMAR_RULES * (sizeof(FirstEntry)));
+    for (int i = 0; i < GRAMMAR_RULES; i++)
     {
         FirstTable[i] = (FirstEntry)malloc(sizeof(struct FirstTableEntry));
         FirstTable[i]->type = grammar[i]->token;
@@ -771,11 +777,201 @@ FirstEntry *ComputeFirstTable(HEAD_NODE *grammar)
         FirstTable[i]->size_firstset = 0;
     }
 
-    for (int i = 0; i < 52; i++)
+    for (int i = 0; i < GRAMMAR_RULES; i++)
     {
         ComputeFirst(grammar[i]);
     }
     return FirstTable;
+}
+
+struct FollowTableEntry
+{
+    TokenType type;
+    TokenType *FollowSet;
+    bool isComputed;
+    int size_followset;
+};
+typedef struct FollowTableEntry *FollowEntry;
+FollowEntry *FollowTable;
+struct FollowElements
+{
+    TokenType type;
+    TokenType *FollowElements;
+    TokenType *FirstElements;
+    TokenType *Terminals;
+    int count_First;
+    int count_Follow;
+    int count_Terminals;
+};
+
+struct FollowElements *FE_Table[GRAMMAR_RULES];
+void Traverse_DT()
+{
+    for (int i = 0; i < GRAMMAR_RULES; i++)
+    {
+        FE_Table[i] = (struct FollowElements *)malloc(sizeof(struct FollowElements));
+        FE_Table[i]->count_First = 0;
+        FE_Table[i]->count_Follow = 0;
+        FE_Table[i]->count_Terminals = 0;
+        FE_Table[i]->type = grammar[i]->token;
+        FE_Table[i]->FollowElements = NULL;
+        FE_Table[i]->FirstElements = NULL;
+        FE_Table[i]->Terminals = NULL;
+    }
+    for (int i = 0; i < GRAMMAR_RULES; i++)
+    {
+        for (int j = 0; j < grammar[i]->count; j++)
+        {
+            NODE temp = grammar[i]->next[j];
+            while (temp->next != NULL)
+            {
+                if (!temp->isT)
+                {
+                    if (temp->next->isT)
+                    {
+                        // printf("%s\n",getStringFromToken(temp->token));
+                        FE_Table[temp->token]->count_Terminals++;
+                        FE_Table[temp->token]->Terminals = realloc(FE_Table[temp->token]->Terminals, (FE_Table[temp->token]->count_Terminals) * sizeof(TokenType));
+                        FE_Table[temp->token]->Terminals[FE_Table[temp->token]->count_Terminals - 1] = temp->next->token;
+                    }
+                    if ((temp->next->isT != true))
+                    {
+                        FE_Table[temp->token]->count_First++;
+                        FE_Table[temp->token]->FirstElements = realloc(FE_Table[temp->token]->FirstElements, (FE_Table[temp->token]->count_First) * sizeof(TokenType));
+                        FE_Table[temp->token]->FirstElements[FE_Table[temp->token]->count_First - 1] = temp->next->token;
+                        if (grammar[temp->next->token]->epsilon_trans == true)
+                        {
+                            FE_Table[temp->token]->count_Follow++;
+                            FE_Table[temp->token]->FollowElements = realloc(FE_Table[temp->token]->FollowElements, (FE_Table[temp->token]->count_Follow) * sizeof(TokenType));
+                            FE_Table[temp->token]->FollowElements[FE_Table[temp->token]->count_Follow - 1] = temp->next->token;
+                        }
+                    }
+                }
+                temp = temp->next;
+            }
+            if ((temp->isT != true))
+            {
+                FE_Table[temp->token]->count_Follow++;
+                FE_Table[temp->token]->FollowElements = realloc(FE_Table[temp->token]->FollowElements, (FE_Table[temp->token]->count_Follow) * sizeof(TokenType));
+                FE_Table[temp->token]->FollowElements[FE_Table[temp->token]->count_Follow - 1] = grammar[i]->token;
+            }
+        }
+    }
+}
+
+bool doesContain(TokenType A, TokenType B)
+{
+    for (int i = 0; i < FE_Table[B]->count_Follow; i++)
+    {
+        if (FE_Table[B]->FollowElements[i] == A)
+            return true;
+    }
+    return false;
+}
+
+TokenType *removeDuplicates(TokenType *arr, int *size)
+{
+    if (*size == 0)
+    {
+        TokenType *result = (TokenType *)malloc(sizeof(TokenType));
+        *result = StackSymbol;
+        return result;
+    }
+    int newSize = 1;
+    TokenType *result = (TokenType *)malloc(sizeof(TokenType) * newSize);
+    *result = *arr;
+    for (int i = 1; i < *size; i++)
+    {
+        TokenType current = arr[i];
+        int isDuplicate = 0;
+        for (int j = 0; j < newSize; j++)
+        {
+            if (result[j] == current)
+            {
+                isDuplicate = 1;
+                break;
+            }
+        }
+        if (!isDuplicate)
+        {
+            newSize++;
+            result = realloc(result, sizeof(TokenType) * newSize);
+            *(result+newSize - 1) = current;
+        }
+    }
+    *size = newSize;
+    free(arr);
+    return result;
+}
+
+void ComputeFollow(HEAD_NODE head_entry)
+{
+    if (FollowTable[head_entry->token]->isComputed == true)
+    {
+        return;
+    }
+    FollowTable[head_entry->token]->FollowSet = realloc(FollowTable[head_entry->token]->FollowSet, (FE_Table[head_entry->token]->count_Terminals) * sizeof(TokenType));
+    for (int i = 0; i < FE_Table[head_entry->token]->count_Terminals; i++)
+    {
+        FollowTable[head_entry->token]->FollowSet[i] = FE_Table[head_entry->token]->Terminals[i];
+    }
+    FollowTable[head_entry->token]->size_followset = FE_Table[head_entry->token]->count_Terminals;
+
+    for (int i = 0; i < FE_Table[head_entry->token]->count_First; i++)
+    {
+        FollowTable[head_entry->token]->FollowSet = realloc(FollowTable[head_entry->token]->FollowSet, (FollowTable[head_entry->token]->size_followset + FirstTable[FE_Table[head_entry->token]->FirstElements[i]]->size_firstset) * sizeof(TokenType));
+        for (int j = FollowTable[head_entry->token]->size_followset; j < (FollowTable[head_entry->token]->size_followset + FirstTable[FE_Table[head_entry->token]->FirstElements[i]]->size_firstset); j++)
+        {
+            FollowTable[head_entry->token]->FollowSet[j] = FirstTable[FE_Table[head_entry->token]->FirstElements[i]]->FirstSet[j - FollowTable[head_entry->token]->size_followset];
+        }
+        FollowTable[head_entry->token]->size_followset += FirstTable[FE_Table[head_entry->token]->FirstElements[i]]->size_firstset;
+    }
+    for (int i = 0; i < FE_Table[head_entry->token]->count_Follow; i++)
+    {
+        if (FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->type == head_entry->token)
+            continue;
+
+        if (FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->isComputed == false)
+        {
+            if (doesContain(head_entry->token, FE_Table[head_entry->token]->FollowElements[i]))
+            {
+                continue;
+            }
+
+            ComputeFollow(grammar[FE_Table[head_entry->token]->FollowElements[i]]);
+        }
+        // printf("%d\n",FollowTable[head_entry->token]->size_followset + FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->size_followset);
+        FollowTable[head_entry->token]->FollowSet = realloc(FollowTable[head_entry->token]->FollowSet, (FollowTable[head_entry->token]->size_followset + FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->size_followset) * sizeof(TokenType));
+
+        for (int j = FollowTable[head_entry->token]->size_followset; j < (FollowTable[head_entry->token]->size_followset + FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->size_followset); j++)
+        {
+            FollowTable[head_entry->token]->FollowSet[j] = FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->FollowSet[j - FollowTable[head_entry->token]->size_followset];
+        }
+        FollowTable[head_entry->token]->size_followset += FollowTable[FE_Table[head_entry->token]->FollowElements[i]]->size_followset;
+    }
+
+    FollowTable[head_entry->token]->FollowSet = removeDuplicates(FollowTable[head_entry->token]->FollowSet, &FollowTable[head_entry->token]->size_followset);
+    FollowTable[head_entry->token]->isComputed = true;
+    return;
+}
+
+FollowEntry *ComputeFollowTable(HEAD_NODE *grammar)
+{
+    Traverse_DT();
+    FollowTable = (FollowEntry *)malloc(sizeof(FollowEntry) * GRAMMAR_RULES);
+    for (int i = 0; i < GRAMMAR_RULES; i++)
+    {
+        FollowTable[i] = (FollowEntry)malloc(sizeof(struct FollowTableEntry));
+        FollowTable[i]->FollowSet = NULL;
+        FollowTable[i]->isComputed = false;
+        FollowTable[i]->size_followset = 0;
+        FollowTable[i]->type = grammar[i]->token;
+    }
+    for (int i = 0; i < GRAMMAR_RULES; i++)
+    {
+        ComputeFollow(grammar[i]);
+    }
+    return FollowTable;
 }
 
 int main()
@@ -783,8 +979,12 @@ int main()
     FILE *fp = fopen("1.txt", "r");
     GrammarReader(fp);
     FirstEntry *FirstTable = ComputeFirstTable(grammar);
-    for (int i = 0; i < 52; i++)
+    for (int i = 0; i < GRAMMAR_RULES; i++)
     {
+        if(FirstTable[i]->size_firstset == 0){
+            printf("?\n");
+            continue;
+        }
         printf("%d) First of %s: ", (i + 1), getStringFromToken(grammar[i]->token));
         for (int j = 0; j < FirstTable[i]->size_firstset; j++)
         {
@@ -794,6 +994,25 @@ int main()
                 break;
             }
             printf("%s ", getStringFromToken(FirstTable[i]->FirstSet[j]));
+        }
+        printf("\n");
+    }
+    FollowEntry *FollowTable = ComputeFollowTable(grammar);
+    for (int i = 0; i < GRAMMAR_RULES; i++)
+    {
+        printf("%d) Follow of %s: ", (i + 1), getStringFromToken(grammar[i]->token));
+        if(FollowTable[i]->size_followset == 0){
+            printf("%s\n", getStringFromToken(FollowTable[i]->FollowSet[0]));
+            continue;
+        }
+        for (int j = 0; j < FollowTable[i]->size_followset; j++)
+        {
+            if (!strcmp(getStringFromToken(FollowTable[i]->FollowSet[j]), "Unrecognized Token"))
+            {
+                printf("Case Blocked\n");
+                break;
+            }
+            printf("%s ", getStringFromToken(FollowTable[i]->FollowSet[j]));
         }
         printf("\n");
     }
